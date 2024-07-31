@@ -5,7 +5,7 @@ const pool = new Pool({
       user: 'postgres',
       password: 'kali',
       host: 'localhost',
-      database: 'movie_db'
+      database: 'employer_db'
     });
   
   pool.connect()
