@@ -1,27 +1,26 @@
 const inquirer = require('inquirer');
 const { Pool } = require('pg');
 
-// Connect to database
-const pool = new Pool(
-    {
+const pool = new Pool({
       user: 'postgres',
       password: 'kali',
       host: 'localhost',
       database: 'movie_db'
-    },
-    console.log(`Connected to the movie_db database.`)
-  )
+    });
   
-  pool.connect();
+  pool.connect()
+  .then(() => console.log(`Connected to the movie_db database.`))
+  .catch(err => console.log(err));
 
-  inquirer
-  .prompt ([
+  const mainMenu = () => {
+    inquirer
+    .prompt([
     {
         type: 'list',
         name: 'action',
         message: 'What would you like to do?',
         choices: ['View all Departments', 'View all Roles', 'View all Employees', 
-            'Add a Department', 'Add a Role', 'Add an Employee', 'Update an Employee Role']
+            'Add a Department', 'Add a Role', 'Add an Employee', 'Update an Employee Role'],
     },
     ])
     .then ((answers) => {
@@ -47,47 +46,66 @@ const pool = new Pool(
             case 'Update an Employee Role':
                 updateEmployeeRole();
                 break;
+            default:
+                console.log('Invalid action');
+                mainMenu();
         }
-    });
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+      });
+    };
 
     function viewDepartments() {
         pool.query('SELECT * FROM department', (err, res) => {
-            if (err) throw err;
+            if (err) {
+                console.log(err);
+            } else {
             console.table(res.rows);
-            pool.end();
+            mainMenu();
+            }
         });
     }
 
     function viewRoles() {
         pool.query('SELECT * FROM role', (err, res) => {
-            if (err) throw err;
+            if (err) {
+                console.log(err);
+            } else {
             console.table(res.rows);
-            pool.end();
+            mainMenu();
+            }
         });
     }
 
     function viewEmployees() {
         pool.query('SELECT * FROM employee', (err, res) => {
-            if (err) throw err;
+            if (err) {
+                console.log(err);
+            } else {
             console.table(res.rows);
-            pool.end();
+            mainMenu();
+            }
         });
     }
 
-    function addDepartment() {
+    const addDepartment = () => {
         inquirer
         .prompt ([
             {
                 type: 'input',
                 name: 'department',
-                message: 'Enter the name of the department you would like to add.'
-            }
+                message: 'Enter the name of the department you would like to add.',
+            },
         ])
-        .then ((answers) => {
-            pool.query('INSERT INTO department (name) VALUES ($1)', [answers.department], (err, res) => {
-                if (err) throw err;
-                console.log('Department added successfully.');
-                pool.end();
+        .then ((answer) => {
+            pool.query('INSERT INTO department (name) VALUES ($1)', [answer.department], (err, res) => {
+                if (err) {
+                    console.error(err);
+                } else {
+                    console.log(`Department ${answer.departmentName} added successfully.`);
+                    mainMenu();
+                }
             });
         });
     }
@@ -113,9 +131,12 @@ const pool = new Pool(
         ])
         .then ((answers) => {
             pool.query('INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)', [answers.title, answers.salary, answers.department_id], (err, res) => {
-                if (err) throw err;
-                console.log('Role added successfully.');
-                pool.end();
+                if (err) {
+                    console.error(err);
+                } else {
+                    console.log(`Role ${answers.roleTitle} added successfully.`);
+                    mainMenu();
+                }
             });
         });
     }
@@ -145,10 +166,14 @@ const pool = new Pool(
             }
         ])
         .then ((answers) => {
+            const managerId = answers.manager_id ? answers.manager_id : null;
             pool.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)', [answers.first_name, answers.last_name, answers.role_id, answers.manager_id], (err, res) => {
-                if (err) throw err;
-                console.log('Employee added successfully.');
-                pool.end();
+                if (err) {
+                    console.error(err);
+                } else {
+                    console.log(`Employee ${answers.firstName} ${answers.lastName} added successfully.`);
+                    mainMenu();
+                }
             });
         });
     }
@@ -169,9 +194,14 @@ const pool = new Pool(
         ])
         .then ((answers) => {
             pool.query('UPDATE employee SET role_id = $1 WHERE id = $2', [answers.role_id, answers.employee_id], (err, res) => {
-                if (err) throw err;
-                console.log('Employee role updated successfully.');
-                pool.end();
+                if (err) {
+                    console.error(err);
+                } else {
+                    console.log(`Employee ID ${answers.employeeId} role updated to ${answers.newRoleId}.`);
+                    mainMenu();
+                }
             });
         });
     }
+
+    mainMenu();
